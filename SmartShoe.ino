@@ -7,6 +7,7 @@ File fd;
 const uint8_t BUFFER_SIZE = 20;
 char fileName[] = "SmartShoe.txt";
 char buff[BUFFER_SIZE+2] = "";
+String str = "";
 uint8_t index = 0;
 
 const uint8_t chipSelect = 8;
@@ -15,7 +16,8 @@ const uint8_t cardDetect = 9;
 enum states: uint8_t { NORMAL, E, EO };
 uint8_t state = NORMAL;
 
-bool alreadyBegan = false;        
+bool alreadyBegan = false;   
+int count = 0;     
 
 volatile int BPM;                   
 volatile int Signal;          
@@ -47,17 +49,8 @@ void loop()
   {
     initializeCard();
   }
-  
-  if (Serial.available() > 0)
-  {
-    readByte();
-
-    if (index == BUFFER_SIZE)
-    {
-      flushBuffer();
-    }
-  }
-                         
+  delay(200);
+  readByte();            
 }
 
 void initializeCard(void)
@@ -97,12 +90,6 @@ void initializeCard(void)
   Serial.print("Opening file: ");
   Serial.println(fileName);
   Serial.println(F("Connect the pulse sensor to the user and typing 'EOF' in the serial monitor will terminate data."));
-    serialOutput() ;
-
-  if (QS == true){                             
-        serialOutputWhenBeatHappens();  
-        QS = false;                  
-  }
   delay(200);  
 }
 
@@ -118,9 +105,9 @@ void eof(void)
     Serial.print(fileName);
     Serial.println(":");
 
-    while (fd.available())
+    while (Serial.available() > 0)
     {
-      Serial.write(fd.read());
+      fd.write(Serial.read());
     }
 
     Serial.println("");
@@ -142,10 +129,12 @@ void flushBuffer(void)
     case NORMAL:
       break;
     case E:
+
       readByte();
       readByte();
       break;
     case EO:
+
       readByte();
       break;
     }
@@ -158,10 +147,15 @@ void flushBuffer(void)
 
 void readByte(void)
 {
+  serialOutput() ;
+
+  if (QS == true){                             
+        SDOutputWhenBeatHappens();  
+        count++;
+        QS = false;                  
+  }
   byte byteRead = Serial.read();
-  //Serial.write(byteRead);
-  //Serial.print(byteRead);
-  buff[index++] = byteRead;
+  buff[index++] = BPM;
 
   if (byteRead == 'E' && state == NORMAL)
   {
