@@ -1,5 +1,6 @@
 #include <SPI.h>
 #include <SD.h>
+#include <Time.h>
 #define PROCESSING_VISUALIZER 1
 #define SERIAL_PLOTTER  2
 
@@ -57,7 +58,9 @@ void loop()
     QS = false;                      // reset the Quantified Self flag for next time
   }
 
+  Serial.print("The BPM is ");
   Serial.print(BPM);
+  Serial.println();
 
   delay(200);
   fd.println(BPM);
@@ -101,6 +104,7 @@ void initializeCard(void)
 
   Serial.print("Opening file: ");
   Serial.println(fileName);
-  Serial.println(F("Connect the pulse sensor to the user and typing 'EOF' in the serial monitor will terminate data."));
+  Serial.println(F("Connect the pulse sensor to the user and disconnect the SD card to terminate the data collection."));
+  
 }
 
