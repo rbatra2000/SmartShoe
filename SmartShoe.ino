@@ -5,30 +5,29 @@
 
 File fd;
 const uint8_t BUFFER_SIZE = 20;
-char fileName[] = "SmartShoe.txt";
-char buff[BUFFER_SIZE+2] = "";
-String str = "";
+char fileName[] = "SmtShoe.txt";
+char buff[BUFFER_SIZE + 2] = "";
 uint8_t index = 0;
 
 const uint8_t chipSelect = 8;
 const uint8_t cardDetect = 9;
 
-enum states: uint8_t { NORMAL, E, EO };
+enum states : uint8_t { NORMAL, E, EO };
 uint8_t state = NORMAL;
 
-bool alreadyBegan = false;   
-int count = 0;     
+bool alreadyBegan = false;
+int count = 0;
 
-volatile int BPM;                   
-volatile int Signal;          
+volatile int BPM;
+volatile int Signal;
 volatile int IBI = 600;
 volatile boolean Pulse = false;
 volatile boolean QS = false;
 
-int pulsePin = 0;               
-int blinkPin = 13;               
-int fadePin = 5;                
-int fadeRate = 0;                         
+int pulsePin = 0;
+int blinkPin = 13;
+int fadePin = 5;
+int fadeRate = 0;
 
 
 static int outputType = SERIAL_PLOTTER;
@@ -40,17 +39,30 @@ void setup()
   while (!Serial);
   pinMode(cardDetect, INPUT);
   initializeCard();
-  interruptSetup();  
+  interruptSetup();
 }
 
 void loop()
 {
+  fd = SD.open(fileName, FILE_WRITE);
   if (!digitalRead(cardDetect))
   {
     initializeCard();
   }
+  
+  serialOutput() ;
+
+  if (QS == true) {    // A Heartbeat Was Found
+    serialOutputWhenBeatHappens();   // A Beat Happened, Output that to serial.
+    QS = false;                      // reset the Quantified Self flag for next time
+  }
+
+  Serial.print(BPM);
+
   delay(200);
-  readByte();            
+  fd.println(BPM);
+  fd.close();
+
 }
 
 void initializeCard(void)
@@ -90,84 +102,5 @@ void initializeCard(void)
   Serial.print("Opening file: ");
   Serial.println(fileName);
   Serial.println(F("Connect the pulse sensor to the user and typing 'EOF' in the serial monitor will terminate data."));
-  delay(200);  
 }
 
-void eof(void)
-{
-  index -= 3;
-  flushBuffer();
-
-  fd = SD.open(fileName);
-  if (fd)
-  {
-    Serial.println("");
-    Serial.print(fileName);
-    Serial.println(":");
-
-    while (Serial.available() > 0)
-    {
-      fd.write(Serial.read());
-    }
-
-    Serial.println("");
-  }
-  else
-  {
-    Serial.print("Error opening ");
-    Serial.println(fileName);
-  }
-  fd.close();
-}
-
-void flushBuffer(void)
-{
-  fd = SD.open(fileName, FILE_WRITE);
-  if (fd) {
-    switch (state)
-    {
-    case NORMAL:
-      break;
-    case E:
-
-      readByte();
-      readByte();
-      break;
-    case EO:
-
-      readByte();
-      break;
-    }
-    fd.write(buff, index);
-    fd.flush();
-    index = 0;
-    fd.close();
-  }
-}
-
-void readByte(void)
-{
-  serialOutput() ;
-
-  if (QS == true){                             
-        SDOutputWhenBeatHappens();  
-        count++;
-        QS = false;                  
-  }
-  byte byteRead = Serial.read();
-  buff[index++] = BPM;
-
-  if (byteRead == 'E' && state == NORMAL)
-  {
-    state = E;
-  }
-  else if (byteRead == 'O' && state == E)
-  {
-    state = EO;
-  }
-  else if (byteRead == 'F' && state == EO)
-  {
-    eof();
-    state = NORMAL;
-  }
-}

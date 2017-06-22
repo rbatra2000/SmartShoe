@@ -1,37 +1,43 @@
-void serialOutput(){
+
+//////////
+/////////  All Serial Handling Code,
+/////////  It's Changeable with the 'outputType' variable
+/////////  It's declared at start of code.
+/////////
+
+void serialOutput(){   // Decide How To Output Serial.
   switch(outputType){
     case PROCESSING_VISUALIZER:
-      sendDataToSD('S', Signal);
-      Serial.println("HI");
+      sendDataToSerial('S', Signal);     // goes to sendDataToSerial function
       break;
-    case SERIAL_PLOTTER:
-      if (BPM > 0)
-      {
-        str = str + BPM + " ";
-        Serial.println();
-        Serial.print(BPM);
-      }
+    case SERIAL_PLOTTER:  // open the Arduino Serial Plotter to visualize these data
+      //Serial.println(BPM);
       //Serial.print(",");
       //Serial.print(IBI);
       //Serial.print(",");
-      //Serial.print(Signal);
+      //Serial.println(Signal);
       break;
     default:
       break;
   }
+
 }
 
-void SDOutputWhenBeatHappens(){
+//  Decides How To OutPut BPM and IBI Data
+void serialOutputWhenBeatHappens(){
   switch(outputType){
-    case PROCESSING_VISUALIZER:
-      sendDataToSD('B',BPM);
-      sendDataToSD('Q',IBI); 
+    case PROCESSING_VISUALIZER:    // find it here https://github.com/WorldFamousElectronics/PulseSensor_Amped_Processing_Visualizer
+      sendDataToSerial('B',BPM);   // send heart rate with a 'B' prefix
+      sendDataToSerial('Q',IBI);   // send time between beats with a 'Q' prefix
+      break;
+
     default:
       break;
   }
 }
 
-void sendDataToSD(char symbol, int data ){
-    fd.print(symbol);
-    fd.println(data);
+//  Sends Data to Pulse Sensor Processing App, Native Mac App, or Third-party Serial Readers.
+void sendDataToSerial(char symbol, int data ){
+    Serial.print(symbol);
+    Serial.println(data);
   }
