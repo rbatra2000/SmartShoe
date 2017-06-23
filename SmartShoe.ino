@@ -5,16 +5,10 @@
 #define SERIAL_PLOTTER  2
 
 File fd;
-const uint8_t BUFFER_SIZE = 20;
 char fileName[] = "SmtShoe.txt";
-char buff[BUFFER_SIZE + 2] = "";
-uint8_t index = 0;
 
 const uint8_t chipSelect = 8;
 const uint8_t cardDetect = 9;
-
-enum states : uint8_t { NORMAL, E, EO };
-uint8_t state = NORMAL;
 
 bool alreadyBegan = false;
 int count = 0;
@@ -36,7 +30,7 @@ static int outputType = SERIAL_PLOTTER;
 
 void setup()
 {
-  Serial.begin(115200);
+  Serial.begin(9600);
   while (!Serial);
   pinMode(cardDetect, INPUT);
   initializeCard();
@@ -45,26 +39,27 @@ void setup()
 
 void loop()
 {
-  fd = SD.open(fileName, FILE_WRITE);
   if (!digitalRead(cardDetect))
   {
     initializeCard();
   }
-  
-  serialOutput() ;
+  fd = SD.open(fileName, FILE_WRITE);
+  //serialOutput() ;
 
-  if (QS == true) {    // A Heartbeat Was Found
-    serialOutputWhenBeatHappens();   // A Beat Happened, Output that to serial.
-    QS = false;                      // reset the Quantified Self flag for next time
+  //  if (QS == true) {    // A Heartbeat Was Found
+  //    serialOutputWhenBeatHappens();   // A Beat Happened, Output that to serial.
+  //    QS = false;                      // reset the Quantified Self flag for next time
+  //  }
+
+  if (fd)
+  {
+    fd.println(BPM);
+    Serial.print("The BPM is ");
+    Serial.print(BPM);
+    Serial.println();
   }
-
-  Serial.print("The BPM is ");
-  Serial.print(BPM);
-  Serial.println();
-
-  delay(200);
-  fd.println(BPM);
   fd.close();
+  delay(200);
 
 }
 
@@ -105,6 +100,5 @@ void initializeCard(void)
   Serial.print("Opening file: ");
   Serial.println(fileName);
   Serial.println(F("Connect the pulse sensor to the user and disconnect the SD card to terminate the data collection."));
-  
 }
 
