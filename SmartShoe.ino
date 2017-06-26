@@ -23,6 +23,7 @@ int pulsePin = 0;
 int blinkPin = 13;
 int fadePin = 5;
 int fadeRate = 0;
+int sum = 0;
 
 
 static int outputType = SERIAL_PLOTTER;
@@ -31,7 +32,6 @@ static int outputType = SERIAL_PLOTTER;
 void setup()
 {
   Serial.begin(9600);
-  while (!Serial);
   pinMode(cardDetect, INPUT);
   initializeCard();
   interruptSetup();
@@ -39,6 +39,22 @@ void setup()
 
 void loop()
 {
+  if (Serial.available())
+  {
+   char byteRead = Serial.read();
+   if (byteRead == 'a')
+   {
+      Serial.println("The average is ");
+      Serial.print((sum+0.0)/count);
+     Serial.println();
+   }
+   else if (byteRead == 'r')
+   {
+      sum=0;
+      count=0;
+      Serial.println("Reset");
+    }
+  }
   if (!digitalRead(cardDetect))
   {
     initializeCard();
@@ -56,6 +72,8 @@ void loop()
     fd.println(BPM);
     Serial.print("The BPM is ");
     Serial.print(BPM);
+    count++;
+    sum += BPM;
     Serial.println();
   }
   fd.close();
