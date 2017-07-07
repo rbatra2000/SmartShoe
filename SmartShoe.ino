@@ -7,7 +7,7 @@
 File fd;
 char fileName[] = "SmtShoe.txt";
 
-const uint8_t chipSelect = 8;
+const uint8_t chipSelect = 10;
 const uint8_t cardDetect = 9;
 
 bool alreadyBegan = false;
