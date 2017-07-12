@@ -43,7 +43,8 @@ void setup()
 {
   Serial.begin(9600);
   Serial.println("***************************************************");
-  Serial.println("Welcome to the SmartShoe!\nPlease type \"help\" for commands!");
+  Serial.println("Welcome to the SmartShoe!\nIf you have any issues, comments, or questions, please contact WiseTech at customerservice@wisetech.com!");
+  printDateTime(gps.date, gps.time);
   pinMode(cardDetect, INPUT);
   ss.begin(GPSBaud);
   initializeCard();
@@ -64,12 +65,60 @@ void loop()
     }
     else if (str.equalsIgnoreCase("reset"))
     {
+      Serial.println();
       sum=0;
       count=0;
-      Serial.println("Reset");
+      Serial.println("Reset!");
+    }
+    else if (str.equalsIgnoreCase("time"))
+    {
+       static const double LONDON_LAT = 51.508131, LONDON_LON = -0.128002;
+
+  printInt(gps.satellites.value(), gps.satellites.isValid(), 5);
+  printInt(gps.hdop.value(), gps.hdop.isValid(), 5);
+  printFloat(gps.location.lat(), gps.location.isValid(), 11, 6);
+  printFloat(gps.location.lng(), gps.location.isValid(), 12, 6);
+  printInt(gps.location.age(), gps.location.isValid(), 5);
+  printDateTime(gps.date, gps.time);
+  printFloat(gps.altitude.meters(), gps.altitude.isValid(), 7, 2);
+  printFloat(gps.course.deg(), gps.course.isValid(), 7, 2);
+  printFloat(gps.speed.kmph(), gps.speed.isValid(), 6, 2);
+  printStr(gps.course.isValid() ? TinyGPSPlus::cardinal(gps.course.value()) : "*** ", 6);
+  
+  unsigned long distanceKmToLondon =
+    (unsigned long)TinyGPSPlus::distanceBetween(
+      gps.location.lat(),
+      gps.location.lng(),
+      LONDON_LAT, 
+      LONDON_LON) / 1000;
+  printInt(distanceKmToLondon, gps.location.isValid(), 9);
+
+  double courseToLondon =
+    TinyGPSPlus::courseTo(
+      gps.location.lat(),
+      gps.location.lng(),
+      LONDON_LAT, 
+      LONDON_LON);
+
+  printFloat(courseToLondon, gps.location.isValid(), 7, 2);
+
+  const char *cardinalToLondon = TinyGPSPlus::cardinal(courseToLondon);
+
+  printStr(gps.location.isValid() ? cardinalToLondon : "*** ", 6);
+
+  printInt(gps.charsProcessed(), true, 6);
+  printInt(gps.sentencesWithFix(), true, 10);
+  printInt(gps.failedChecksum(), true, 9);
+  Serial.println();
+  
+  smartDelay(1000);
+
+  if (millis() > 5000 && gps.charsProcessed() < 10)
+    Serial.println(F("No GPS data received: check wiring"));
     }
     else if (str.equalsIgnoreCase("bpm"))
     {
+      Serial.println();
       for (int i=0; i < 20; i++)
       {
         if (!digitalRead(cardDetect))
@@ -80,7 +129,7 @@ void loop()
 
         if (fd)
         {
-          //printDateTime(gps.date, gps.time);
+          printDateTime(gps.date, gps.time);
           fd.println(BPM);
           Serial.print("The BPM is ");
           Serial.print(BPM);
@@ -98,7 +147,7 @@ void loop()
 
 void initializeCard(void)
 {
-  Serial.print(F("Initializing SD card..."));
+  Serial.print(F("Please wait for the SD card to initialize..."));
 
   // Is there even a card?
   if (!digitalRead(cardDetect))
@@ -123,7 +172,7 @@ void initializeCard(void)
   Serial.print(fileName);
   if (SD.exists(fileName))
   {
-    Serial.println(F(" exists."));
+    Serial.println(F(" already exists."));
   }
   else
   {
@@ -132,7 +181,7 @@ void initializeCard(void)
 
   Serial.print("Opening file: ");
   Serial.println(fileName);
-  Serial.println(F("Connect the pulse sensor to the user and disconnect the SD card to terminate the data collection."));
+  Serial.println(F("Please put the shoe on and use the commands for destination, location, time/date, or heart rate!"));
 }
 
 // This custom version of delay() ensures that the gps object
@@ -184,25 +233,27 @@ static void printInt(unsigned long val, bool valid, int len)
 static void printDateTime(TinyGPSDate &d, TinyGPSTime &t)
 {
   Serial.println();
-  Serial.print("Scanning for satellite");
-  while (!d.isValid())
+  if (!d.isValid())
   {
-    Serial.print(".");
-    delay(5000);
+    Serial.print(F("Still loading, try again in a few minutes..."));
   }
+  else
+  {
     char sz[32];
     sprintf(sz, "%02d/%02d/%02d ", d.month(), d.day(), d.year());
-    fd.print(sz);
-  
-  while (!t.isValid())
-  {
-        Serial.print(".");
-        delay(5000);
+    Serial.print(sz);
   }
-  sz[32];
+  
+  if (!t.isValid())
+  {
+    Serial.print(F("Still loading, try again in a few minutes..."));
+  }
+  else
+  {
+    char sz[32];
     sprintf(sz, "%02d:%02d:%02d ", t.hour()-7, t.minute(), t.second());
-    fd.print(sz);
-
+    Serial.print(sz);
+  }
   printInt(d.age(), d.isValid(), 5);
   smartDelay(0);
 }
