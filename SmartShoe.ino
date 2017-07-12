@@ -1,6 +1,4 @@
-#include <SPI.h>
 #include <SD.h>
-#include <Time.h>
 #define PROCESSING_VISUALIZER 1
 #define SERIAL_PLOTTER  2
 #include <TinyGPS++.h>
@@ -32,27 +30,24 @@ TinyGPSPlus gps;
 // The serial connection to the GPS device
 SoftwareSerial ss(RXPin, TXPin);
 
-
 int sum = 0;
 
-
 static int outputType = SERIAL_PLOTTER;
-
 
 void setup()
 {
   Serial.begin(9600);
+  ss.begin(GPSBaud);
   Serial.println("***************************************************");
   Serial.println("Welcome to the SmartShoe!\nIf you have any issues, comments, or questions, please contact WiseTech at customerservice@wisetech.com!");
-  printDateTime(gps.date, gps.time);
   pinMode(cardDetect, INPUT);
-  ss.begin(GPSBaud);
   initializeCard();
-  interruptSetup();
+  //interruptSetup();
 }
 
 void loop()
 {
+
   if (Serial.available())
   {
     String str = Serial.readString();
@@ -69,52 +64,6 @@ void loop()
       sum=0;
       count=0;
       Serial.println("Reset!");
-    }
-    else if (str.equalsIgnoreCase("time"))
-    {
-       static const double LONDON_LAT = 51.508131, LONDON_LON = -0.128002;
-
-  printInt(gps.satellites.value(), gps.satellites.isValid(), 5);
-  printInt(gps.hdop.value(), gps.hdop.isValid(), 5);
-  printFloat(gps.location.lat(), gps.location.isValid(), 11, 6);
-  printFloat(gps.location.lng(), gps.location.isValid(), 12, 6);
-  printInt(gps.location.age(), gps.location.isValid(), 5);
-  printDateTime(gps.date, gps.time);
-  printFloat(gps.altitude.meters(), gps.altitude.isValid(), 7, 2);
-  printFloat(gps.course.deg(), gps.course.isValid(), 7, 2);
-  printFloat(gps.speed.kmph(), gps.speed.isValid(), 6, 2);
-  printStr(gps.course.isValid() ? TinyGPSPlus::cardinal(gps.course.value()) : "*** ", 6);
-  
-  unsigned long distanceKmToLondon =
-    (unsigned long)TinyGPSPlus::distanceBetween(
-      gps.location.lat(),
-      gps.location.lng(),
-      LONDON_LAT, 
-      LONDON_LON) / 1000;
-  printInt(distanceKmToLondon, gps.location.isValid(), 9);
-
-  double courseToLondon =
-    TinyGPSPlus::courseTo(
-      gps.location.lat(),
-      gps.location.lng(),
-      LONDON_LAT, 
-      LONDON_LON);
-
-  printFloat(courseToLondon, gps.location.isValid(), 7, 2);
-
-  const char *cardinalToLondon = TinyGPSPlus::cardinal(courseToLondon);
-
-  printStr(gps.location.isValid() ? cardinalToLondon : "*** ", 6);
-
-  printInt(gps.charsProcessed(), true, 6);
-  printInt(gps.sentencesWithFix(), true, 10);
-  printInt(gps.failedChecksum(), true, 9);
-  Serial.println();
-  
-  smartDelay(1000);
-
-  if (millis() > 5000 && gps.charsProcessed() < 10)
-    Serial.println(F("No GPS data received: check wiring"));
     }
     else if (str.equalsIgnoreCase("bpm"))
     {
@@ -141,10 +90,20 @@ void loop()
         delay(200);
       }
     }
+    else if (str.equalsIgnoreCase("time"))
+    {
+     printDateTime(gps.date, gps.time);
+ 
+     Serial.println();
+  
+     smartDelay(1000);
+
+      if (millis() > 5000 && gps.charsProcessed() < 10)
+        Serial.println(F("No GPS data received: check wiring"));
+    }
   }
 }
   
-
 void initializeCard(void)
 {
   Serial.print(F("Please wait for the SD card to initialize..."));
@@ -230,12 +189,11 @@ static void printInt(unsigned long val, bool valid, int len)
   smartDelay(0);
 }
 
-static void printDateTime(TinyGPSDate &d, TinyGPSTime &t)
+static String printDateTime(TinyGPSDate &d, TinyGPSTime &t)
 {
-  Serial.println();
   if (!d.isValid())
   {
-    Serial.print(F("Still loading, try again in a few minutes..."));
+    Serial.print(F("********** "));
   }
   else
   {
@@ -246,7 +204,7 @@ static void printDateTime(TinyGPSDate &d, TinyGPSTime &t)
   
   if (!t.isValid())
   {
-    Serial.print(F("Still loading, try again in a few minutes..."));
+    return (F("******** "));
   }
   else
   {
