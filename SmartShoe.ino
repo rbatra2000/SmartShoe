@@ -21,8 +21,12 @@ volatile int IBI = 600;             // int that holds the time interval between 
 volatile boolean Pulse = false;     // "True" when User's live heartbeat is detected. "False" when not a "live beat".
 volatile boolean QS = false;   
 
-static const int RXPin = 4, TXPin = 3;
+static const int RXPin = 4, TXPin = 5;
 static const uint32_t GPSBaud = 9600;
+
+boolean pulsing = true;
+boolean outputting = true;
+String dateVal = "";
 
 // The TinyGPS++ object
 TinyGPSPlus gps;
@@ -42,14 +46,13 @@ void setup()
   Serial.println("Welcome to the SmartShoe!\nIf you have any issues, comments, or questions, please contact WiseTech at customerservice@wisetech.com!");
   pinMode(cardDetect, INPUT);
   initializeCard();
-  //interruptSetup();
+  interruptSetup();
 }
 
 void loop()
 {
-
-  if (Serial.available())
   {
+    //Serial.println("Testing");
     String str = Serial.readString();
     if (str.equalsIgnoreCase("average"))
     {
@@ -58,15 +61,19 @@ void loop()
       Serial.print((sum+0.0)/count);
       Serial.println();
     }
-    else if (str.equalsIgnoreCase("reset"))
-    {
-      Serial.println();
-      sum=0;
-      count=0;
-      Serial.println("Reset!");
-    }
+//    else if (str.equalsIgnoreCase("reset"))
+//    {
+//      pulsing = true;
+//      sum=0;
+//      count=0;
+//      Serial.println();
+//      Serial.println("Reset!");
+//    }
     else if (str.equalsIgnoreCase("bpm"))
     {
+      //Serial.println("BPMTesting");
+      pulsing = true;
+      outputting = true;
       Serial.println();
       for (int i=0; i < 20; i++)
       {
@@ -78,9 +85,7 @@ void loop()
 
         if (fd)
         {
-          printDateTime(gps.date, gps.time);
           fd.println(BPM);
-          Serial.print("The BPM is ");
           Serial.print(BPM);
           count++;
           sum += BPM;
@@ -92,20 +97,46 @@ void loop()
     }
     else if (str.equalsIgnoreCase("time"))
     {
+     pulsing = false;
      printDateTime(gps.date, gps.time);
  
      Serial.println();
   
-     smartDelay(1000);
-
       if (millis() > 5000 && gps.charsProcessed() < 10)
         Serial.println(F("No GPS data received: check wiring"));
     }
   }
+  outputting = false;
+  pulsing = true;
+  //Serial.println("BackTesting");
+  if (!digitalRead(cardDetect))
+        {
+         initializeCard();
+        }
+  fd = SD.open(fileName, FILE_WRITE);
+  if (fd)
+  {
+    if (count == 0)
+    {
+      pulsing = false;
+      Serial.println();
+      printDateTime(gps.date, gps.time);
+      printDateTime(gps.date, gps.time);
+      fd.println();
+      fd.println(dateVal);
+      smartDelay(1000);
+      pulsing = true;
+    }
+    fd.println(BPM);
+    count ++;
+    sum += BPM;
+  }
+  fd.close();
+  delay(200);
 }
-  
 void initializeCard(void)
 {
+  if (outputting) {
   Serial.print(F("Please wait for the SD card to initialize..."));
 
   // Is there even a card?
@@ -113,12 +144,16 @@ void initializeCard(void)
   {
     Serial.println(F("No card detected. Waiting for card."));
     while (!digitalRead(cardDetect));
+    }
     delay(250);
+    
   }
 
   if (!SD.begin(chipSelect) && !alreadyBegan)
   {
+    if (outputting) {
     Serial.println(F("Initialization failed!"));
+    }
     initializeCard();
   }
   else
@@ -126,6 +161,7 @@ void initializeCard(void)
     alreadyBegan = true;
   }
 
+  if (outputting) {
   Serial.println(F("Initialization done."));
 
   Serial.print(fileName);
@@ -140,7 +176,8 @@ void initializeCard(void)
 
   Serial.print("Opening file: ");
   Serial.println(fileName);
-  Serial.println(F("Please put the shoe on and use the commands for destination, location, time/date, or heart rate!"));
+  Serial.println(F("Please put the shoe on and use the commands for navigation, location, time/date, or heart rate!"));
+}
 }
 
 // This custom version of delay() ensures that the gps object
@@ -155,25 +192,6 @@ static void smartDelay(unsigned long ms)
   } while (millis() - start < ms);
 }
 
-static void printFloat(float val, bool valid, int len, int prec)
-{
-  if (!valid)
-  {
-    while (len-- > 1)
-      Serial.print('*');
-    Serial.print(' ');
-  }
-  else
-  {
-    Serial.print(val, prec);
-    int vi = abs((int)val);
-    int flen = prec + (val < 0.0 ? 2 : 1); // . and -
-    flen += vi >= 1000 ? 4 : vi >= 100 ? 3 : vi >= 10 ? 2 : 1;
-    for (int i=flen; i<len; ++i)
-      Serial.print(' ');
-  }
-  smartDelay(0);
-}
 
 static void printInt(unsigned long val, bool valid, int len)
 {
@@ -193,34 +211,34 @@ static String printDateTime(TinyGPSDate &d, TinyGPSTime &t)
 {
   if (!d.isValid())
   {
-    Serial.print(F("********** "));
+    Serial.print(F(""));
   }
   else
   {
     char sz[32];
     sprintf(sz, "%02d/%02d/%02d ", d.month(), d.day(), d.year());
-    Serial.print(sz);
+    dateVal = sz;
+    Serial.print(dateVal);
   }
   
   if (!t.isValid())
   {
-    return (F("******** "));
+    return (F(""));
   }
   else
   {
+    int time = t.hour() - 7;
+    if (time <= 0)
+    {
+      time = time + 24;
+    }
     char sz[32];
-    sprintf(sz, "%02d:%02d:%02d ", t.hour()-7, t.minute(), t.second());
+    sprintf(sz, "%02d:%02d:%02d ", time, t.minute(), t.second());
     Serial.print(sz);
+    dateVal = sz;
   }
   printInt(d.age(), d.isValid(), 5);
   smartDelay(0);
 }
 
-static void printStr(const char *str, int len)
-{
-  int slen = strlen(str);
-  for (int i=0; i<len; ++i)
-    Serial.print(i<slen ? str[i] : ' ');
-  smartDelay(0);
-}
 

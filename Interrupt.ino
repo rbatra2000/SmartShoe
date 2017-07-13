@@ -10,19 +10,17 @@ volatile boolean secondBeat = false;      // used to seed rate array so we start
 
 
 void interruptSetup(){
-        // Initializes Timer1 to throw an interrupt every 2mS.
-        TCCR1A = 0x00; // DISABLE OUTPUTS AND PWM ON DIGITAL PINS 9 & 10
-        TCCR1B = 0x11; // GO INTO 'PHASE AND FREQUENCY CORRECT' MODE, NO PRESCALER
-        TCCR1C = 0x00; // DON'T FORCE COMPARE
-        TIMSK1 = 0x01; // ENABLE OVERFLOW INTERRUPT (TOIE1)
-        ICR1 = 8000;  // TRIGGER TIMER INTERRUPT EVERY 2mS
-        sei();         // MAKE SURE GLOBAL INTERRUPTS ARE ENABLED
-      }
+  // Initializes Timer2 to throw an interrupt every 2mS.
+  TCCR2A = 0x02;     // DISABLE PWM ON DIGITAL PINS 3 AND 11, AND GO INTO CTC MODE
+  TCCR2B = 0x06;     // DON'T FORCE COMPARE, 256 PRESCALER
+  OCR2A = 0X7C;      // SET THE TOP OF THE COUNT TO 124 FOR 500Hz SAMPLE RATE
+  TIMSK2 = 0x02;     // ENABLE INTERRUPT ON MATCH BETWEEN TIMER2 AND OCR2A
+  sei();             // MAKE SURE GLOBAL INTERRUPTS ARE ENABLED
+}
 
 
-// THIS IS THE TIMER 2 INTERRUPT SERVICE ROUTINE.
-// Timer 2 makes sure that we take a reading every 2 miliseconds
 ISR(TIMER2_COMPA_vect){                         // triggered when Timer2 counts to 124
+  if (pulsing) {
   cli();                                      // disable interrupts while we do this
   Signal = analogRead(pulsePin);              // read the Pulse Sensor
   sampleCounter += 2;                         // keep track of the time in mS with this variable
@@ -75,7 +73,7 @@ ISR(TIMER2_COMPA_vect){                         // triggered when Timer2 counts 
       runningTotal /= 10;                     // average the last 10 IBI values
       BPM = 60000/runningTotal;               // how many beats can fit into a minute? that's BPM!
       QS = true;                              // set Quantified Self flag
-      // QS FLAG IS NOT CLEARED INSIDE THIS ISR
+      // QS FLAG IS NOT CLEARED INSIDE THIS ISRn
     }
   }
 
@@ -96,5 +94,8 @@ ISR(TIMER2_COMPA_vect){                         // triggered when Timer2 counts 
     secondBeat = false;                    // when we get the heartbeat back
   }
 
+ // Serial.println("Testing");
+
   sei();                                   // enable interrupts when youre done!
+}
 }// end isr
