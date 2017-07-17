@@ -9,6 +9,7 @@ volatile boolean firstBeat = true;        // used to seed rate array so we start
 volatile boolean secondBeat = false;      // used to seed rate array so we startup with reasonable BPM
 
 
+//Changes Timer2 to what compliments the Pulse sensor
 void interruptSetup(){
   // Initializes Timer2 to throw an interrupt every 2mS.
   TCCR2A = 0x02;     // DISABLE PWM ON DIGITAL PINS 3 AND 11, AND GO INTO CTC MODE
@@ -18,7 +19,7 @@ void interruptSetup(){
   sei();             // MAKE SURE GLOBAL INTERRUPTS ARE ENABLED
 }
 
-
+//Timer2 Actions
 ISR(TIMER2_COMPA_vect){                         // triggered when Timer2 counts to 124
   if (pulsing) {
   cli();                                      // disable interrupts while we do this
