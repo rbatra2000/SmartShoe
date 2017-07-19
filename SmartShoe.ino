@@ -172,8 +172,15 @@ void loop()
       latit, 
       longit);
        Serial.println();
+       Serial.print(F("Current Latitude: "));
+       printFloat(gps.location.lat(), gps.location.isValid(), 11, 6);
+       Serial.println();
+       Serial.print(F("Current Longitude"));       
+  printFloat(gps.location.lng(), gps.location.isValid(), 12, 6);
+  Serial.println();
   Serial.print(F("Distance to Location:"));
   printInt(distanceKm, gps.location.isValid(), 9);
+  
     smartDelay(1000);
   }
  }
@@ -369,6 +376,28 @@ static void printStr(const char *str, int len)
   int slen = strlen(str);
   for (int i=0; i<len; ++i)
     Serial.print(i<slen ? str[i] : ' ');
+  smartDelay(0);
+}
+
+//Print Float
+//Parameters are the value, whether it is valid, and length/precision
+static void printFloat(float val, bool valid, int len, int prec)
+{
+  if (!valid)
+  {
+    while (len-- > 1)
+      Serial.print('*');
+    Serial.print(' ');
+  }
+  else
+  {
+    Serial.print(val, prec);    
+    int vi = abs((int)val);
+    int flen = prec + (val < 0.0 ? 2 : 1); // . and -
+    flen += vi >= 1000 ? 4 : vi >= 100 ? 3 : vi >= 10 ? 2 : 1;
+    for (int i=flen; i<len; ++i)
+      Serial.print(' ');
+  }
   smartDelay(0);
 }
 
